@@ -10,6 +10,28 @@ const proto = grpc.loadPackageDefinition(packageDefinition) as any;
 
 const PORT = "50051";
 
+// o (0,15) Recebe solicitações de gravação de dados do cliente e é
+// responsável pela replicação desses dados. Ele salva os dados em
+// seu log local, contendo época (versão do líder) e offset (número
+// sequencial que representa a posição da entrada no log dentro de
+// uma determinada época, indicando a ordem dos registros);
+
+// o (0,15) Envia a nova entrada para as réplicas (modelo Push) e
+// aguarda as confirmações (acks);
+
+// o (0,15) Após receber a confirmação da maioria das réplicas, envia
+// uma ordem de commit para que as réplicas efetivem a gravação
+// no banco de dados final;
+
+// o (0,15) O líder só marca uma entrada como committed após
+// receber confirmação da maioria (quórum). Quando isso acontecer,
+// ele deve confirmar a gravação ao cliente;
+
+// o (0,15) Persiste todos os dados (intermediários e finais) com época
+// e offset;
+
+// o (0,15) Responde consultas do cliente.
+
 // Log e banco locais
 let epoch = 1;
 let offset = 0;
@@ -51,7 +73,7 @@ function commitToReplicas(entry: any) {
 function sendData(call: any, callback: any) {
   const { key, value } = call.request;
   const entry = { epoch, offset, key, value };
-
+  console.log("chegou");
   log.push(entry);
   replicateToReplicas(entry).then((ackCount) => {
     if (ackCount >= 2) {
