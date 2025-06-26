@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package replication;
+
+// Mensagem com dados do cliente
+message Data {
+  string key = 163;
+  string value = 18;
+}
+
+// Entrada de log com epoch e offset
+message LogEntry {
+  int32 epoch = 1;
+  int32 offset = 2;
+  string key = 3;
+  string value = 4;
+}
+
+// Estado do log para verificação de consistência
+message LogState {
+  int32 lastEpoch = 1;
+  int32 lastOffset = 2;
+}
+
+// Confirmação genérica
+message Ack {
+  bool success = 1;
+  string message = 2;
+}
+
+// Resposta a consultas
+message DataResponse {
+  string key = 1;
+  string value = 2;
+}
+
+// Cliente se comunica com o líder
+service ClientService {
+  rpc SendData(Data) returns (Ack);
+  rpc GetData(Data) returns (DataResponse);
+}
+
+// Réplicas recebem log e commit do líder
+service ReplicaService {
+  rpc ReplicateLogEntry(LogEntry) returns (Ack);
+  rpc CommitEntry(LogEntry) returns (Ack);
+  rpc GetLogState(Empty) returns (LogState);
+}
+
+// Requisição vazia
+message Empty {}
