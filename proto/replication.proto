@@ -44,7 +44,7 @@ service ClientService {
 service ReplicaService {
   rpc ReplicateLogEntry(LogEntry) returns (Ack);
   rpc CommitEntry(LogEntry) returns (Ack);
-  rpc GetDataByKey(Data) returns (DataResponse); // <- adicionado
+  rpc GetDataByKey(Data) returns (DataResponse); 
 }
 
 // Requisição vazia
