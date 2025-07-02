@@ -87,12 +87,17 @@ function commitEntry(call: any, callback: any) {
   callback(null, { success: true, message: "Commit aplicado" });
 }
 
-function getLogState(call: any, callback: any) {
-  if (log.length === 0) {
-    return callback(null, { lastEpoch: 0, lastOffset: -1 });
+function getDataByKey(call: any, callback: any) {
+  const { key } = call.request;
+  const value = database[key];
+
+  if (value === undefined) {
+    console.log(`[${PORT}] Consulta: chave "${key}" não encontrada.`);
+    return callback(null, { key, value: "" }); // Ou você pode lançar erro se preferir
   }
-  const last = log[log.length - 1];
-  callback(null, { lastEpoch: last.epoch, lastOffset: last.offset });
+
+  console.log(`[${PORT}] Consulta: chave "${key}" retornou valor "${value}".`);
+  callback(null, { key, value });
 }
 
 function main() {
@@ -100,7 +105,7 @@ function main() {
   server.addService(proto.replication.ReplicaService.service, {
     ReplicateLogEntry: replicateLogEntry,
     CommitEntry: commitEntry,
-    GetLogState: getLogState,
+    GetDataByKey: getDataByKey,
   });
   server.bindAsync(
     `0.0.0.0:${PORT}`,

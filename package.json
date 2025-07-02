@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@googleapis/chat": "^38.0.1",
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.7.15",
     "uuid": "^11.1.0"

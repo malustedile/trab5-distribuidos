@@ -36,7 +36,6 @@ const PORT = "50051";
 let epoch = 1;
 let offset = 0;
 const log: any[] = [];
-const database: Record<string, string> = {};
 
 const replicas = [
   { address: "localhost:50052" },
@@ -73,12 +72,10 @@ function commitToReplicas(entry: any) {
 function sendData(call: any, callback: any) {
   const { key, value } = call.request;
   const entry = { epoch, offset, key, value };
-  console.log("chegou");
   log.push(entry);
   replicateToReplicas(entry).then((ackCount) => {
     if (ackCount >= 2) {
       commitToReplicas(entry);
-      database[key] = value;
       offset++;
       callback(null, { success: true, message: "Committed" });
     } else {
@@ -89,10 +86,34 @@ function sendData(call: any, callback: any) {
 
 function getData(call: any, callback: any) {
   const { key } = call.request;
-  if (database[key]) {
-    callback(null, { key, value: database[key] });
-  } else {
-    callback(null, { key, value: "" });
+
+  let responded = false;
+  let remaining = replicas.length;
+
+  for (const replica of replicas) {
+    const client = new proto.replication.ReplicaService(
+      replica.address,
+      grpc.credentials.createInsecure()
+    );
+
+    client.GetDataByKey({ key }, (err: any, response: any) => {
+      remaining--;
+
+      if (!responded && !err && response && response.value !== "") {
+        responded = true;
+        console.log(
+          `[Leader] Valor de "${key}" encontrado na réplica ${replica.address}: "${response.value}"`
+        );
+        return callback(null, { key, value: response.value });
+      }
+
+      if (remaining === 0 && !responded) {
+        console.log(
+          `[Leader] Chave "${key}" não encontrada em nenhuma réplica.`
+        );
+        callback(null, { key, value: "" });
+      }
+    });
   }
 }
 
