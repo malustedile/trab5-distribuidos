@@ -26,12 +26,19 @@ message LogState {
 message Ack {
   bool success = 1;
   string message = 2;
+  LogState currentState = 3; // Estado atual da réplica para sincronização
 }
 
 // Resposta a consultas
 message DataResponse {
   string key = 1;
   string value = 2;
+}
+
+// Sincronização de log completo
+message LogSync {
+  repeated LogEntry entries = 1;
+  int32 startOffset = 2;
 }
 
 // Cliente se comunica com o líder
@@ -44,7 +51,8 @@ service ClientService {
 service ReplicaService {
   rpc ReplicateLogEntry(LogEntry) returns (Ack);
   rpc CommitEntry(LogEntry) returns (Ack);
-  rpc GetDataByKey(Data) returns (DataResponse); 
+  rpc SyncLog(LogSync) returns (Ack); // Para sincronização do log
+  rpc GetDataByKey(Data) returns (DataResponse);
 }
 
 // Requisição vazia
