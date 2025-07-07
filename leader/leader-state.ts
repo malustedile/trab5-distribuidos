@@ -1,5 +1,7 @@
 // leader/leader-state.ts
 
+import { RedisManager } from "../db/redis";
+
 export interface LogEntry {
   epoch: number;
   offset: number;
@@ -11,8 +13,16 @@ export interface LogEntry {
 export class LeaderState {
   private epoch: number = 1;
   private offset: number = 0;
-  private log: LogEntry[] = [];
-  private database: Record<string, string> = {};
+  private database: RedisManager = new RedisManager("leader");
+
+  constructor() {
+    this.loadState();
+  }
+
+  async loadState() {
+    this.epoch = await this.database.getLeaderEpoch();
+    console.log(`Leader state loaded with epoch: ${this.epoch}`);
+  }
 
   getEpoch(): number {
     return this.epoch;
@@ -23,7 +33,7 @@ export class LeaderState {
   }
 
   getLog(): LogEntry[] {
-    return this.log;
+    return this.getLog();
   }
 
   appendEntry(key: string, value: string): LogEntry {
@@ -34,22 +44,18 @@ export class LeaderState {
       value,
       committed: false,
     };
-    this.log.push(entry);
+    this.database.saveLogEntry(entry);
     return entry;
   }
 
-  markCommitted(entry: LogEntry) {
-    const index = this.log.findIndex(
-      (e) => e.epoch === entry.epoch && e.offset === entry.offset
-    );
-    if (index !== -1) {
-      this.log[index].committed = true;
-      this.database[entry.key] = entry.value;
-      this.offset++;
-    }
+  markCommitted(epoch: number, offset: number) {
+    this.database.commitLogEntry(epoch, offset);
   }
 
-  read(key: string): string | undefined {
-    return this.database[key];
+  async read(key: string): Promise<string | undefined> {
+    const entry = await this.database.getLastCommittedValue(key);
+    return entry ? entry.value : undefined;
   }
 }
+
+export const leaderState = new LeaderState();
