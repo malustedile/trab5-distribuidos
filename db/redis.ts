@@ -123,7 +123,7 @@ export class RedisManager {
   }
 
   async setNewStateFromLog(logs: LogEntry[]) {
-    const existingKeys = await redis.keys(`${this.entity}:*`);
+    const existingKeys = await redis.keys(`${this.entity}*`);
     if (existingKeys.length > 0) {
       await redis.del(...existingKeys);
     }
