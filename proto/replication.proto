@@ -14,12 +14,7 @@ message LogEntry {
   int32 offset = 2;
   string key = 3;
   string value = 4;
-}
-
-// Estado do log para verificação de consistência
-message LogState {
-  int32 lastEpoch = 1;
-  int32 lastOffset = 2;
+  string committed = 5;
 }
 
 // Confirmação genérica
@@ -34,18 +29,20 @@ message DataResponse {
   string value = 2;
 }
 
-// Cliente se comunica com o líder
+// Resposta com múltiplas entradas de log
+message LogStateResponse {
+  repeated LogEntry entries = 1;
+}
+
 service ClientService {
   rpc SendData(Data) returns (Ack);
   rpc GetData(Data) returns (DataResponse);
+  rpc GetLogState(Empty) returns (LogStateResponse);
 }
 
-// Réplicas recebem log e commit do líder
 service ReplicaService {
   rpc ReplicateLogEntry(LogEntry) returns (Ack);
   rpc CommitEntry(LogEntry) returns (Ack);
-  rpc GetLogState(Empty) returns (LogState);
 }
 
-// Requisição vazia
 message Empty {}

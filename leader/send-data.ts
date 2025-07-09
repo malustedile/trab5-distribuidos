@@ -1,7 +1,7 @@
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
 import path from "path";
-import { leaderState } from "./leader-state";
+import { leaderState } from "./leader";
 
 const PROTO_PATH = path.join(__dirname, "../proto/replication.proto");
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {});
@@ -40,14 +40,15 @@ function commitToReplicas(entry: any) {
 
 export function sendData(call: any, callback: any) {
   const { key, value } = call.request;
-  const entry = leaderState.appendEntry(key, value);
-  replicateToReplicas(entry).then((ackCount) => {
-    if (ackCount >= 2) {
-      commitToReplicas(entry);
-      leaderState.markCommitted(entry.epoch, entry.offset);
-      callback(null, { success: true, message: "Committed" });
-    } else {
-      callback(null, { success: false, message: "Not enough replicas" });
-    }
+  leaderState.appendEntry(key, value).then((entry) => {
+    replicateToReplicas(entry).then((ackCount) => {
+      if (ackCount >= 2) {
+        commitToReplicas(entry);
+        leaderState.markCommitted(entry.epoch, entry.offset);
+        callback(null, { success: true, message: "Committed" });
+      } else {
+        callback(null, { success: false, message: "Not enough replicas" });
+      }
+    });
   });
 }

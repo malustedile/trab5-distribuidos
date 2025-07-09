@@ -1,4 +1,4 @@
-import { leaderState } from "./leader-state";
+import { leaderState } from "./leader";
 
 export function getData(call: any, callback: any) {
   const { key } = call.request;
